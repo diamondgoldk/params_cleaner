@@ -2,8 +2,8 @@ require "spec_helper"
 
 describe ParamsCleaner do
   describe "version" do
-    it "is 0.4.0" do
-      ParamsCleaner::VERSION.should == "0.4.0"
+    it "is 0.4.3" do
+      ParamsCleaner::VERSION.should == "0.4.3"
     end
   end
 
@@ -167,6 +167,30 @@ describe ParamsCleaner do
           {"foo" => "foo1", "bar" => "bar1"},
           {"foo" => "foo2", "bar" => "bar2"}
         ]
+      end
+
+      it "handles arrays of non-hashes" do
+        klass = Class.new do
+          include ParamsCleaner
+
+          allowed_params(
+            :root => [:foo]
+          )
+
+          def params
+            HashWithIndifferentAccess.new(
+              :root => HashWithIndifferentAccess.new(
+                :foo => [1, 2]
+              )
+            )
+          end
+        end
+
+        instance = klass.new
+
+        instance.clean_params[:root].should == {
+          "foo" => [1, 2]
+        }
       end
     end
 

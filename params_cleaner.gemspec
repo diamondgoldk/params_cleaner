@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path("../lib/params_cleaner", __FILE__)
+require File.expand_path("../lib/params_cleaner/version", __FILE__)
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Drew Olson"]
@@ -13,5 +13,5 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = ParamsCleaner::VERSION
 
-  gem.add_dependency  "activesupport", ">= 3.0.0"
+  gem.add_dependency  "activesupport", "~> 3.0"
 end

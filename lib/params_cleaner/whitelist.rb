@@ -4,56 +4,37 @@ module ParamsCleaner
       @whitelist = whitelist
     end
 
-    def sanitize(params, top_level = true)
-      cleaned_params = params.map do |key, value|
-        if value.kind_of?(Hash)
-          _clean_hash(key, value)
-        elsif value.kind_of?(Array)
-          _clean_array(key, value)
-        else
-          _clean_value(key, value, top_level)
-        end
-      end
-
-      cleaned_params_hash = Hash[cleaned_params]
-      HashWithIndifferentAccess.new(cleaned_params_hash)
-    end
-
-    def _allowed_nested
-      @whitelist.detect { |params_group| params_group.is_a?(Hash) } || {}
-    end
-
-    def _allowed_top_level
-      params_groups = []
-      @whitelist.each do |params_group|
-        unless params_group.is_a?(Hash)
-          params_groups << params_group
-        end
-      end
-      params_groups
-    end
-
-    def _clean_array(key, value)
-      cleaned_values = value.map do |sub_value|
-        _clean_hash(key, sub_value).last
-      end
-      [key, cleaned_values]
-    end
-
-    def _clean_hash(key, value)
-      allowed_keys = value.slice(*_allowed_nested[key.to_sym])
-      clean_values = sanitize(allowed_keys, false)
-      [key, clean_values]
-    end
-
-    def _clean_value(key, value, top_level)
-      return [key, value] unless top_level
-
-      if _allowed_top_level.include?(key.to_sym)
-        [key, value]
+    def sanitize(item, parent = nil)
+      if item.kind_of?(Hash)
+        _sanitize_hash(item, parent)
+      elsif item.kind_of?(Array)
+        item.map { |item| sanitize(item, parent) }
       else
-        []
+        item
       end
+    end
+
+    def _sanitize_hash(hash, parent)
+      valid_keys = _valid_keys_for_parent(parent)
+      valid_pairs = hash.select { |key, value| valid_keys.include?(key.to_sym) }
+      sanitized_pairs = valid_pairs.map { |key, value| [key, sanitize(value, key.to_sym)] }
+
+      HashWithIndifferentAccess.new(Hash[sanitized_pairs])
+    end
+
+    def _top_level_keys
+      @top_level_keys ||= @whitelist.reject { |item| item.kind_of?(Hash) }
+    end
+
+    def _valid_keys_for_parent(parent)
+      _whitelist_hash.keys.tap do |keys|
+        keys.concat(_top_level_keys) if parent.nil?
+        keys.concat(_whitelist_hash[parent]) if _whitelist_hash.has_key?(parent)
+      end
+    end
+
+    def _whitelist_hash
+      @whitelist_hash ||= @whitelist.last.is_a?(Hash) ? @whitelist.last : {}
     end
   end
 end
